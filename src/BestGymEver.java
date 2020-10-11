@@ -131,18 +131,16 @@ public class BestGymEver {
 
             String result = searchInFile(userInput,file,null);
 
-            // Om kund finns och har betalt senaste året. Skicka till metod för skriva till fil
             if(status == StatusMembership.NUVARANDE_MEDLEM){
                 String outFile = "Overlook Of Customers Training Schedule.txt";
                 printToFile(outFile,result);
                 System.out.println("Information tillagt i filen: " + outFile + "\n");
             }
 
-            // Om kund finns men ej har betalt. Skriv ut ett meddelande om detta
             else if(status == StatusMembership.GAMMAL_MEDLEM){
                 System.out.println(result+"\n");
             }
-            // Om kund ej finns skriv ut ett meddelande om detta
+
             else System.out.println(result+"\n");
         }
     }
