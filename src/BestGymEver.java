@@ -1,4 +1,6 @@
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.*;
 import java.util.*;
 
@@ -18,8 +20,32 @@ public class BestGymEver {
 
     public StatusMembership status;  // NUVARANDE_MEDLEM,GAMMAL_MEDLEM,EJ_MEDLEM
     public boolean test = false;
+    Path inFilePath = Paths.get("Files\\Customers.txt");
+    Path outFilePath = Paths.get("Files\\Overlook Of Customers Training Schedule.txt");
 
+    public List<Client> getListWithClients(Path fileToReadFrom){
+        List<Client> list = new ArrayList<>();
+        String persNr;
+        String name;
 
+        try(Scanner scan = new Scanner(fileToReadFrom)){
+            while(scan.hasNext()){
+                String line = scan.nextLine();
+                int index = line.indexOf(",");
+                persNr = line.substring(0,index);
+                name = line.substring(index+1).trim();
+
+                line = scan.nextLine();
+                LocalDate lastPaid = LocalDate.parse(line);
+
+                list.add(new Client(name,persNr,lastPaid));
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+            System.out.println("Error");
+        }
+        return list;
+    }
 
     public String readInputData(String prompt, String optionalTestParameter){
         Scanner keyboardIn;
@@ -40,9 +66,6 @@ public class BestGymEver {
             } catch (NullPointerException e) {
                 System.out.println("Indata saknas");
                 keyboardIn.next();
-            } catch (NoSuchElementException e) {
-                System.out.println("Indata saknas!");
-                keyboardIn.next();
             } catch (Exception e) {
                 System.out.println("Ospecifierat fel inträffade, försök igen!");
                 keyboardIn.next();
@@ -51,52 +74,30 @@ public class BestGymEver {
         }
     }
 
-    public String searchInFile(String input, String fileName, LocalDate todayTest) throws IOException {
-        String persNr;
-        String name;
-        boolean existsInFile;
-        boolean paidWithinLastYear;
-
-        try(Scanner scan = new Scanner(new File(fileName))){
-            while(scan.hasNext()){
-                // Skannar och tilldear personnummer samt namn
-                String line = scan.nextLine();
-                int index = line.indexOf(",");
-                persNr = line.substring(0,index);
-                name = line.substring(index+1).trim();
-
-                // Skannar in datum för senaste betalning.
-                line = scan.nextLine();
-                LocalDate lastPaid = LocalDate.parse(line);
-
-                // Kontrollerar om input matchar med första raden i filen
-                existsInFile = searchForPerson(input,persNr,name);
-
-                // Om personen finns så kontrolleras ifall personen har betalat inom det senaste året
-                if(existsInFile){
-                    paidWithinLastYear = paidWithinLastYear(lastPaid,todayTest);
-                    if(paidWithinLastYear) {
-                        status = StatusMembership.NUVARANDE_MEDLEM;
-                        return LocalDate.now() + " " + name + " " + persNr;
-                    }
-                    else {
-                        status = StatusMembership.GAMMAL_MEDLEM;
-                        return "Medlemmen har ej ett aktivt medlemskap.";
-                    }
-                }
-            }
-        }catch(Exception e){
-            e.printStackTrace();
-            System.out.println("Oväntat fel med scannern.");
+    public String searcInFileForPerson(String input, Client client, LocalDate todayTest){
+        boolean paidWithinLastYear = false;
+        boolean existsInFile = checkIfPersonExistsInFile(input,client);
+        if(existsInFile){
+            paidWithinLastYear = paidWithinLastYear(client.getPaidMembershipOnDate(),todayTest);
         }
 
-        status = StatusMembership.EJ_MEDLEM;
-        return "Ny medlem som ej finns i systemet.";
+        if(paidWithinLastYear) {
+            status = StatusMembership.NUVARANDE_MEDLEM;
+            return LocalDate.now() + " " + client.getName() + " " + client.getPersNumber();
+        }
+        else if(existsInFile) {
+            status = StatusMembership.GAMMAL_MEDLEM;
+            return "Medlemmen har ej ett aktivt medlemskap.";
+        }
+        else {
+            status = StatusMembership.EJ_MEDLEM;
+            return "Ej hittat i databasen.";
+        }
     }
 
-    public boolean searchForPerson(String input, String persNr, String name){
-        if(persNr.equalsIgnoreCase(input.replace("-",""))) return true;
-        else if(input.equalsIgnoreCase(name)) return true;
+    public boolean checkIfPersonExistsInFile(String input, Client client){
+        if(client.getPersNumber().equalsIgnoreCase(input.replace("-",""))) return true;
+        else if(client.getName().equalsIgnoreCase(input)) return true;
         else return false;
     }
 
@@ -111,8 +112,8 @@ public class BestGymEver {
         return lastPaid.isAfter(lastYear);
     }
 
-    public void printToFile(String fileName, String lineToAddToFile)throws IOException{
-        try(PrintWriter output = new PrintWriter(new BufferedWriter(new FileWriter(fileName,true)))){
+    public void printToFile(Path fileName, String lineToAddToFile)throws IOException{
+        try(PrintWriter output = new PrintWriter(new BufferedWriter(new FileWriter(fileName.toFile(),true)))){
             output.println(lineToAddToFile);
         }catch (Exception e){
             e.printStackTrace();
@@ -122,34 +123,40 @@ public class BestGymEver {
 
 
 
-    public void mainProgram()throws IOException{
-        String file = "Customers.txt";
-        String message = "Sök på fullständigt namn eller personnummer med 10 siffror. Ex. 5004153364\nAvsluta progammet genom att skriva \"Exit\"";
+
+    public void mainProgram() throws IOException{
+        List<Client> clients = getListWithClients(inFilePath);
+
+        String promptMessage = "Sök på fullständigt namn eller personnummer med 10 siffror. " +
+                "Ex. 5004153364\nAvsluta progammet genom att skriva \"Exit\"";
+
         while(true) {
-            String userInput = readInputData(message, null);
-            if(userInput.equalsIgnoreCase("Exit")) System.exit(0);
+            String userInput = readInputData(promptMessage, null);
+            if (userInput.equalsIgnoreCase("Exit")) System.exit(0);
 
-            String result = searchInFile(userInput,file,null);
-
-            if(status == StatusMembership.NUVARANDE_MEDLEM){
-                String outFile = "Overlook Of Customers Training Schedule.txt";
-                printToFile(outFile,result);
-                System.out.println("Information tillagt i filen: " + outFile + "\n");
+            String result = "";
+            for(int i = 0; i < clients.size(); i++){
+                result = searcInFileForPerson(userInput,clients.get(i),null);
+                if(status == StatusMembership.NUVARANDE_MEDLEM) break;
+                else if(status == StatusMembership.GAMMAL_MEDLEM) break;
             }
 
+            if(status == StatusMembership.NUVARANDE_MEDLEM){
+                printToFile(outFilePath,result);
+                System.out.println("Information tillagt i filen: " + outFilePath.getFileName() + "\n");
+            }
             else if(status == StatusMembership.GAMMAL_MEDLEM){
                 System.out.println(result+"\n");
             }
-
             else System.out.println(result+"\n");
         }
     }
+
 
     public static void main(String[] args) throws IOException{
         BestGymEver bge = new BestGymEver();
         bge.mainProgram();
     }
-
 }
 
 /*

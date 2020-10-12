@@ -13,8 +13,8 @@ public class BestGymEverTest {
     // * Testa Exception nullpointer XXX
     // * Testa inläsning XXX
     // * Testa sökning i fil XXX
-    // * Testa ifall namn eller personnummer stämmer XXX
-    // * Testa om medlem är nuvarande, gammal eller ej medlem XXX
+    // * Testa ifall namn eller personnummer stämmer
+    // * Testa om medlem är nuvarande, gammal eller ej medlem
 
     BestGymEver bge = new BestGymEver();
 
@@ -36,45 +36,47 @@ public class BestGymEverTest {
     }
 
     @Test
-    public final void searchInFileTest()throws IOException {
+    public final void searcInFileForPersonTest()throws IOException {
         bge.test = true;
         LocalDate today = LocalDate.parse("2020-10-10");
-        String fileName = "Customers.txt";
         LocalDate actualToday = LocalDate.now();
+        String oldMember = "Medlemmen har ej ett aktivt medlemskap.";
+        String unkown = "Ej hittat i databasen.";
 
+        LocalDate paidDate = LocalDate.parse("2019-07-01");
+        Client client = new Client("Alhambra Aromes","7603021234",paidDate);
         String input = "7603021234";
-        assertTrue(bge.searchInFile(input,fileName,today) == "Medlemmen har ej ett aktivt medlemskap.");
-        assertFalse(bge.searchInFile(input,fileName,today) == actualToday.toString()+" Alhambra Aromes 7603021234");
-        assertFalse(bge.searchInFile(input,fileName,today) == "Ny medlem som ej finns i systemet.");
+        assertTrue(bge.searcInFileForPerson(input,client,today) == oldMember);
+        assertFalse(bge.searcInFileForPerson(input,client,today) == actualToday.toString()+" Alhambra Aromes 7603021234");
+        assertFalse(bge.searcInFileForPerson(input,client,today) == unkown);
         // Alhambra Aromes 7603021234 2019-07-01
 
+        LocalDate paidDate2 = LocalDate.parse("2020-01-30");
+        Client client2 = new Client("Diamanda Djedi","7608021234",paidDate2);
         String input2 = "Diamanda Djedi";
-        assertEquals(bge.searchInFile(input2,fileName,today), actualToday.toString()+" Diamanda Djedi 7608021234");
-        assertFalse(bge.searchInFile(input2,fileName,today) == "Medlemmen har ej ett aktivt medlemskap.");
-        assertFalse(bge.searchInFile(input2,fileName,today) == "Ny medlem som ej finns i systemet.");
+        assertEquals(bge.searcInFileForPerson(input2,client2,today), actualToday.toString()+" Diamanda Djedi 7608021234");
+        assertFalse(bge.searcInFileForPerson(input2,client2,today) == oldMember);
+        assertFalse(bge.searcInFileForPerson(input2,client2,today) == unkown);
         // Diamanda Djedi 7608021234 2020-01-30
 
         String input3 = "5501319955";
-        assertTrue(bge.searchInFile(input3,fileName,today) == "Ny medlem som ej finns i systemet.");
-        assertFalse(bge.searchInFile(input3,fileName,today) == "Medlemmen har ej ett aktivt medlemskap.");
+        assertTrue(bge.searcInFileForPerson(input3,client,today) == unkown);
+        assertFalse(bge.searcInFileForPerson(input3,client,today) == oldMember);
     }
 
     @Test
-    public final void searchForPersonTest(){
+    public final void checkIfPersonExistsInFileTest(){
+        LocalDate date = LocalDate.parse("2020-01-03");
+        Client client = new Client("Kerstin Danielsson","8005264514",date);
+
         String input = "800526-4514";
-        String persNr = "8005264514";
-        String name = "Kerstin Danielsson";
-        assertTrue(bge.searchForPerson(input,persNr,name));
+        assertTrue(bge.checkIfPersonExistsInFile(input,client));
 
         String input2 = "Kerstin Danielsson";
-        String persNr2 = "8005264515";
-        String name2 = "Kerstin Danielsson";
-        assertTrue(bge.searchForPerson(input2,persNr2,name2));
+        assertTrue(bge.checkIfPersonExistsInFile(input2,client));
 
-        String input3 = "8005264514";
-        String persNr3 = "8005264515";
-        String name3 = "Kerstin Danielsson";
-        assertFalse(bge.searchForPerson(input3,persNr3,name3));
+        String input3 = "8005264513";
+        assertFalse(bge.checkIfPersonExistsInFile(input3,client));
     }
 
     @Test
