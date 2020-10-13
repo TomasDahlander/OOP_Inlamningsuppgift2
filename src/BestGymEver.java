@@ -1,39 +1,33 @@
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 
-/**
- * Created by Tomas Dahlander <br>
- * Date: 2020-10-08 <br>
- * Time: 17:30 <br>
- * Project: OOPInlämningsuppgift2 <br>
- */
 public class BestGymEver {
+    // * Metod som läser in från en fil och skapar en lista med objekt XXX
     // * Metod som läser in ett sökvärde från användaren XXX
-    // * Metod som söker igenom filen XXX
-    // * Metod som tar emot 3 stringar och returnerar en boolean true om namn eller personnummer stämmer XXX
+    // * Metod som söker i listan med clienter ifall en match hittas. Nyttjar andra metoder.
+    // * Metod som tar emot en string och en client och returnerar true om namn eller personnummer matchar med sökvärde XXX
     // * Metod som tar emot ett datum för senaste betalning och returnerar true om kunden har betalat inom det senaste året XXX
     // * Metod som skriver till en fil XXX
 
 
-    public StatusMembership status;  // NUVARANDE_MEDLEM,GAMMAL_MEDLEM,EJ_MEDLEM
+    public MembershipStatus status;  // NUVARANDE_MEDLEM,GAMMAL_MEDLEM,EJ_MEDLEM
     public boolean test = false;
     Path inFilePath = Paths.get("Files\\Customers.txt");
     Path outFilePath = Paths.get("Files\\Overlook Of Customers Training Schedule.txt");
 
+
+
     public List<Client> getListWithClients(Path fileToReadFrom){
         List<Client> list = new ArrayList<>();
-        String persNr;
-        String name;
 
         try(Scanner scan = new Scanner(fileToReadFrom)){
             while(scan.hasNext()){
                 String line = scan.nextLine();
                 int index = line.indexOf(",");
-                persNr = line.substring(0,index);
-                name = line.substring(index+1).trim();
+                String persNr = line.substring(0,index);
+                String name = line.substring(index+1).trim();
 
                 line = scan.nextLine();
                 LocalDate lastPaid = LocalDate.parse(line);
@@ -41,8 +35,8 @@ public class BestGymEver {
                 list.add(new Client(name,persNr,lastPaid));
             }
         }catch(IOException e){
-            e.printStackTrace();
-            System.out.println("Error");
+           // e.printStackTrace();
+            System.out.println("Det gick ej att läsa från fil: " + fileToReadFrom.getFileName());
         }
         return list;
     }
@@ -69,33 +63,35 @@ public class BestGymEver {
             } catch (Exception e) {
                 System.out.println("Ospecifierat fel inträffade, försök igen!");
                 keyboardIn.next();
-                e.printStackTrace();
+               // e.printStackTrace();
             }
         }
     }
 
-    public String searcInFileForPerson(String input, Client client, LocalDate todayTest){
+
+
+    public String searchInListForClient(String input, Client client, LocalDate todayTest){
         boolean paidWithinLastYear = false;
-        boolean existsInFile = checkIfPersonExistsInFile(input,client);
+        boolean existsInFile = checkIfPersonExistsInList(input,client);
         if(existsInFile){
             paidWithinLastYear = paidWithinLastYear(client.getPaidMembershipOnDate(),todayTest);
         }
 
         if(paidWithinLastYear) {
-            status = StatusMembership.NUVARANDE_MEDLEM;
+            status = MembershipStatus.NUVARANDE_MEDLEM;
             return LocalDate.now() + " " + client.getName() + " " + client.getPersNumber();
         }
         else if(existsInFile) {
-            status = StatusMembership.GAMMAL_MEDLEM;
+            status = MembershipStatus.GAMMAL_MEDLEM;
             return "Medlemmen har ej ett aktivt medlemskap.";
         }
         else {
-            status = StatusMembership.EJ_MEDLEM;
+            status = MembershipStatus.EJ_MEDLEM;
             return "Ej hittat i databasen.";
         }
     }
 
-    public boolean checkIfPersonExistsInFile(String input, Client client){
+    public boolean checkIfPersonExistsInList(String input, Client client){
         if(client.getPersNumber().equalsIgnoreCase(input.replace("-",""))) return true;
         else if(client.getName().equalsIgnoreCase(input)) return true;
         else return false;
@@ -116,8 +112,8 @@ public class BestGymEver {
         try(PrintWriter output = new PrintWriter(new BufferedWriter(new FileWriter(fileName.toFile(),true)))){
             output.println(lineToAddToFile);
         }catch (Exception e){
-            e.printStackTrace();
-            System.out.println("Något fel inträffade vid skrivning till fil.");
+          //  e.printStackTrace();
+            System.out.println("Kunde inte skriva till fil: " + fileName.getFileName());
         }
     }
 
@@ -127,8 +123,8 @@ public class BestGymEver {
     public void mainProgram() throws IOException{
         List<Client> clients = getListWithClients(inFilePath);
 
-        String promptMessage = "Sök på fullständigt namn eller personnummer med 10 siffror. " +
-                "Ex. 5004153364\nAvsluta progammet genom att skriva \"Exit\"";
+        String promptMessage = "Sök på fullständigt namn eller personnummer med 10 siffror." +
+                "\nAvsluta progammet genom att skriva \"Exit\"";
 
         while(true) {
             String userInput = readInputData(promptMessage, null);
@@ -136,16 +132,15 @@ public class BestGymEver {
 
             String result = "";
             for(int i = 0; i < clients.size(); i++){
-                result = searcInFileForPerson(userInput,clients.get(i),null);
-                if(status == StatusMembership.NUVARANDE_MEDLEM) break;
-                else if(status == StatusMembership.GAMMAL_MEDLEM) break;
+                result = searchInListForClient(userInput,clients.get(i),null);
+                if(status != MembershipStatus.EJ_MEDLEM) break;
             }
 
-            if(status == StatusMembership.NUVARANDE_MEDLEM){
+            if(status == MembershipStatus.NUVARANDE_MEDLEM){
                 printToFile(outFilePath,result);
                 System.out.println("Information tillagt i filen: " + outFilePath.getFileName() + "\n");
             }
-            else if(status == StatusMembership.GAMMAL_MEDLEM){
+            else if(status == MembershipStatus.GAMMAL_MEDLEM){
                 System.out.println(result+"\n");
             }
             else System.out.println(result+"\n");
