@@ -37,6 +37,9 @@ public class BestGymEver {
         }catch(IOException e){
            // e.printStackTrace();
             System.out.println("Det gick ej att läsa från fil: " + fileToReadFrom.getFileName());
+        }catch(Exception e){
+           // e.printStackTrace();
+            System.out.println("Ospecifiserat fel inträffade.");
         }
         return list;
     }
@@ -79,7 +82,7 @@ public class BestGymEver {
 
         if(paidWithinLastYear) {
             status = MembershipStatus.NUVARANDE_MEDLEM;
-            return LocalDate.now() + " " + client.getName() + " " + client.getPersNumber();
+            return "Date: " + LocalDate.now() + " Name: " + client.getName() + " (" + client.getPersNumber()+")";
         }
         else if(existsInFile) {
             status = MembershipStatus.GAMMAL_MEDLEM;
@@ -109,7 +112,6 @@ public class BestGymEver {
     }
 
 
-
     public void printToFile(Path fileName, String lineToAddToFile)throws IOException{
         try(PrintWriter output = new PrintWriter(new BufferedWriter(new FileWriter(fileName.toFile(),true)))){
             output.println(lineToAddToFile);
@@ -118,7 +120,6 @@ public class BestGymEver {
             System.out.println("Kunde inte skriva till fil: " + fileName.getFileName());
         }
     }
-
 
 
 
@@ -148,7 +149,6 @@ public class BestGymEver {
             else System.out.println(result+"\n");
         }
     }
-
 
     public static void main(String[] args) throws IOException{
         BestGymEver bge = new BestGymEver();
