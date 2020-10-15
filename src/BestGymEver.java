@@ -108,6 +108,8 @@ public class BestGymEver {
         return lastPaid.isAfter(lastYear);
     }
 
+
+
     public void printToFile(Path fileName, String lineToAddToFile)throws IOException{
         try(PrintWriter output = new PrintWriter(new BufferedWriter(new FileWriter(fileName.toFile(),true)))){
             output.println(lineToAddToFile);
